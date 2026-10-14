@@ -68,40 +68,48 @@ const router = createRouter({
         {
           path: 'semaforo',
           name: 'semaforo',
-          component: Pendiente,
+          component: () => import('@/views/seguimiento/SemaforoView.vue'),
           meta: {
             titulo: 'Semáforo de riesgo',
             icono: markRaw(PhChartPieSlice),
             descripcion: 'Alumnos por nivel de inasistencia en tus grupos',
             seccion: 'Seguimiento',
             permiso: 'ver_semaforo_riesgo',
-            bloque: 6,
           },
         },
         {
           path: 'alumnos',
           name: 'alumnos',
-          component: Pendiente,
+          component: () => import('@/views/seguimiento/AlumnosView.vue'),
           meta: {
             titulo: 'Alumnos',
             icono: markRaw(PhIdentificationCard),
             descripcion: 'Busca a un alumno y abre su expediente',
             seccion: 'Seguimiento',
             permiso: 'consultar_alumnos',
-            bloque: 5,
+          },
+        },
+        {
+          // Expediente: se llega desde el semáforo, la búsqueda o el historial (no va en el menú)
+          path: 'alumnos/:id(\\d+)',
+          name: 'expediente',
+          component: () => import('@/views/seguimiento/ExpedienteView.vue'),
+          meta: {
+            titulo: 'Expediente del alumno',
+            descripcion: 'Asistencia del periodo, tutores y día por día',
+            permiso: 'consultar_alumnos',
           },
         },
         {
           path: 'asistencias',
           name: 'asistencias',
-          component: Pendiente,
+          component: () => import('@/views/seguimiento/HistorialView.vue'),
           meta: {
             titulo: 'Historial de asistencias',
             icono: markRaw(PhCalendarCheck),
             descripcion: 'Consulta asistencias por grupo, materia o fecha',
             seccion: 'Seguimiento',
             permiso: 'consultar_asistencias',
-            bloque: 5,
           },
         },
         {

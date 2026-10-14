@@ -521,13 +521,14 @@ export interface paths {
     }
     /**
      * Consultar historial de asistencias con filtros (CU-05)
-     * @description Pertenencia (s5a-s7a): el docente solo ve sus grupos; el orientador, los grupos que tiene asignados en orientador_grupo.
+     * @description Se pide alumno_id o grupo_id (422 si no viene ninguno). Por alumno trae todo el periodo, incluidas las clases de un grupo anterior si lo cambiaron. Pertenencia: el grupo pedido, o el grupo actual del alumno, debe ser visible para el usuario (el docente, donde da clase; el orientador, los que orienta); si no, 403. Más reciente primero. periodo_id por omisión: el activo.
      */
     get: {
       parameters: {
         query?: {
           alumno_id?: number
           grupo_id?: number
+          materia_id?: number
           periodo_id?: number
           fecha_inicio?: string
           fecha_fin?: string
@@ -544,11 +545,12 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': components['schemas']['Asistencia'][]
+            'application/json': components['schemas']['AsistenciaHistorial'][]
           }
         }
         401: components['responses']['NoAutenticado']
         403: components['responses']['SinPermiso']
+        422: components['responses']['ErrorValidacion']
       }
     }
     put?: never
@@ -568,7 +570,7 @@ export interface paths {
     }
     /**
      * Consultar el semáforo de riesgo de inasistencia por alumno (CU-06)
-     * @description Nivel = el umbral donde porcentaje_min <= porcentaje_inasistencia < porcentaje_max (el nivel alto incluye el 100). El orientador solo ve los grupos que tiene asignados.
+     * @description Alumnos activos (sin bajas) del periodo activo, de los grupos que ve el usuario (pertenencia; con ver_todos_los_grupos, todos), ordenados del mayor al menor porcentaje. Reglas (2026-10-14): porcentaje = faltas / clases con lista, sobre todo el periodo aunque el alumno haya cambiado de grupo; faltas = ausencias + retardos ÷ retardos_equivalen_falta (3 = 1 falta); las justificadas no son falta pero sí clase. Nivel = el umbral donde porcentaje_min <= % < porcentaje_max (alto incluye el 100). Si un nivel tiene faltas_consecutivas y racha_dias lo alcanza, sube a ese nivel. grupo_id de un grupo que no ve → 403.
      */
     get: {
       parameters: {
@@ -588,15 +590,7 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': {
-              alumno?: components['schemas']['Alumno']
-              /** Format: float */
-              porcentaje_inasistencia?: number
-              /** @enum {string} */
-              nivel_riesgo?: 'bajo' | 'medio' | 'alto'
-              /** @example #16a34a */
-              color_hex?: string
-            }[]
+            'application/json': components['schemas']['SemaforoAlumno'][]
           }
         }
         401: components['responses']['NoAutenticado']
@@ -1161,7 +1155,7 @@ export interface paths {
     }
     /**
      * Buscar/listar alumnos (la vía principal de alta es POST /importaciones, CU-14; esto es para consulta)
-     * @description Buscador; devuelve máximo 50, ordenados por nombre. matricula busca por prefijo, nombre por contenido.
+     * @description Buscador; devuelve máximo 50, ordenados por nombre (apellidos primero). matricula busca por prefijo, nombre por contenido. Pertenencia: solo alumnos inscritos en el periodo activo en grupos que el usuario ve (con ver_todos_los_grupos, cualquiera).
      */
     get: {
       parameters: {
@@ -1188,6 +1182,50 @@ export interface paths {
         }
         401: components['responses']['NoAutenticado']
         403: components['responses']['SinPermiso']
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/alumnos/{alumno_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Expediente del alumno (datos, grupo actual, riesgo del periodo y tutores)
+     * @description Pertenencia: su grupo actual debe ser visible para el usuario (con ver_todos_los_grupos, cualquiera); si no, 403. riesgo usa las mismas reglas que /semaforo-riesgo; es null si no está inscrito en el periodo activo.
+     */
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          alumno_id: components['parameters']['AlumnoId']
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Expediente */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['AlumnoExpediente']
+          }
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+        404: components['responses']['NoEncontrado']
       }
     }
     put?: never
@@ -2539,6 +2577,74 @@ export interface components {
        */
       capturada_en: string
     }
+    SemaforoAlumno: {
+      alumno?: components['schemas']['Alumno']
+      grupo?: components['schemas']['Grupo']
+      /** @description Clases con lista tomada en el periodo */
+      clases?: number
+      ausencias?: number
+      retardos?: number
+      justificadas?: number
+      /** @description ausencias + retardos ÷ retardos_equivalen_falta */
+      faltas?: number
+      /**
+       * Format: float
+       * @description faltas × 100 / clases, 2 decimales
+       */
+      porcentaje_inasistencia?: number
+      /** @description Días hábiles más recientes seguidos sin venir a ninguna clase */
+      racha_dias?: number
+      /** @enum {string} */
+      nivel_riesgo?: 'bajo' | 'medio' | 'alto'
+      /** @example #16a34a */
+      color_hex?: string
+    }
+    RiesgoAlumno: {
+      clases?: number
+      ausencias?: number
+      retardos?: number
+      justificadas?: number
+      faltas?: number
+      /** Format: float */
+      porcentaje_inasistencia?: number
+      racha_dias?: number
+      /** @enum {string} */
+      nivel_riesgo?: 'bajo' | 'medio' | 'alto'
+      color_hex?: string
+    }
+    AlumnoExpediente: components['schemas']['Alumno'] & {
+      grupo?: components['schemas']['Grupo'] | null
+      riesgo?: components['schemas']['RiesgoAlumno'] | null
+      tutores?: (components['schemas']['PadreTutor'] & {
+        parentesco?: string | null
+        es_principal?: boolean
+      })[]
+    }
+    AsistenciaHistorial: {
+      id?: number
+      /** Format: date */
+      fecha?: string
+      /** @example 07:00 */
+      hora_inicio?: string
+      /** @enum {string} */
+      estado?: 'presente' | 'ausente' | 'retardo' | 'justificado'
+      /** @enum {string} */
+      origen?: 'online' | 'offline'
+      /** Format: date-time */
+      capturada_en?: string
+      alumno?: {
+        id?: number
+        matricula?: string
+        nombre?: string
+      }
+      materia?: {
+        id?: number
+        clave?: string
+        nombre?: string
+      }
+      grupo?: components['schemas']['Grupo']
+      motivo_justificacion?: string | null
+    }
     Asistencia: {
       id?: number
       sesion_clase_id?: number
@@ -2644,6 +2750,7 @@ export interface components {
       porcentaje_min?: number
       /** Format: float */
       porcentaje_max?: number
+      /** @description Días hábiles seguidos sin venir que suben al alumno a este nivel; null = desactivado */
       faltas_consecutivas?: number | null
       /** @example #16a34a */
       color_hex?: string
