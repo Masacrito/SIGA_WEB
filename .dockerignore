@@ -1,0 +1,15 @@
+.git
+node_modules
+dist
+dist-ssr
+.env
+.env.*
+!.env.example
+*.local
+.eslintcache
+Dockerfile
+.dockerignore
+coverage
+*.log
+compose*.yaml
+docker-compose*.yml

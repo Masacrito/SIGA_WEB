@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <meta
+      name="description"
+      content="SIGA: pase de lista, semáforo de riesgo y seguimiento tutorial."
+    />
+    <meta name="robots" content="noindex" />
+    <title>SIGA</title>
+    <style>
+      /* Pantalla de carga mientras se valida la sesión; Vue la reemplaza al montar */
+      .arranque { min-height: 100dvh; display: grid; place-items: center; background: #f7f8fa; }
+      .arranque img { width: 40px; height: 40px; animation: latido 1.4s ease-in-out infinite; }
+      @keyframes latido { 50% { opacity: .45; } }
+      @media (prefers-reduced-motion: reduce) { .arranque img { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div id="app"><div class="arranque" role="status" aria-label="Cargando"><img src="/favicon.svg" alt="" /></div></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

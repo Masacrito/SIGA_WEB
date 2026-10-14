@@ -1,0 +1,169 @@
+@import 'tailwindcss';
+
+/*
+ * Tipografía: Geist (texto) y Geist Mono (matrículas, usuarios y cifras).
+ * Es la pareja que piden para software/dashboards las skills de diseño del
+ * repo de taquilla (design-taste-frontend-v1, minimalist-ui).
+ * Auto-hospedadas con Fontsource: funcionan sin internet en la red del plantel.
+ */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+/*
+ * IDENTIDAD — paleta tomada del plantel piloto (COBACH, Colegio de Bachilleres
+ * de Chiapas). La interfaz se presenta como SIGA.
+ * Azul marino como color institucional único + blanco como fondo.
+ * Los hex del marino son PROVISIONALES (aproximados al logotipo); cuando se
+ * tenga el Pantone del Manual Básico de Identidad del COBACH se ajustan aquí
+ * y ninguna vista cambia.
+ *
+ * Reglas:
+ *  - Un solo acento: marino. Nada de verdes/morados decorativos.
+ *  - Los grises son de la familia "tinta" (fríos, con un toque del marino);
+ *    no se mezclan con slate/gray/zinc de Tailwind.
+ *  - Los colores de riesgo son semánticos, solo para el semáforo y alertas.
+ */
+@theme {
+  /* Marino institucional */
+  --color-marca-50: #f1f4f9;
+  --color-marca-100: #e1e7f1;
+  --color-marca-200: #c3cfe3;
+  --color-marca-300: #93a7c9;
+  --color-marca-500: #3a5a92;
+  --color-marca-600: #284878;
+  --color-marca-700: #1f3a64;
+  --color-marca-800: #182e51;
+  --color-marca-900: #122441;
+  --color-marca-950: #0b1830;
+
+  /* Neutros fríos, tintados con el marino */
+  --color-tinta-50: #f6f7f9;
+  --color-tinta-100: #eceef2;
+  --color-tinta-200: #dde1e8;
+  --color-tinta-300: #c4cad5;
+  --color-tinta-400: #838b9b; /* mínimo 3:1 sobre blanco: íconos y bordes de campos (WCAG 1.4.11) */
+  --color-tinta-500: #687183;
+  --color-tinta-600: #4e5667;
+  --color-tinta-700: #3b4252;
+  --color-tinta-800: #262c38;
+  --color-tinta-900: #161b24;
+
+  /* Semáforo de riesgo (mismos hex que umbrales_riesgo del seeder) */
+  --color-riesgo-bajo: #16a34a;
+  --color-riesgo-medio: #f59e0b;
+  --color-riesgo-alto: #dc2626;
+
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  /* Superficies: lienzo, papel y una sola línea de 1px para separar */
+  --color-lienzo: #f7f8fa;
+  --color-linea: #e6e8ed;
+
+  /*
+   * Sombras casi inexistentes y tintadas con el marino (skills minimalist-ui y
+   * design-taste): la jerarquía se da con línea y espacio, no con elevación.
+   * La elevada es solo para lo que flota de verdad (menú móvil, avisos).
+   */
+  --shadow-suave: 0 1px 2px rgb(18 36 65 / 0.04);
+  --shadow-elevada: 0 24px 48px -16px rgb(18 36 65 / 0.22);
+
+  --ease-salida: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Escala de capas: nada de z-[9999] */
+  --z-index-menu-fondo: 30;
+  --z-index-menu: 40;
+  --z-index-aviso: 50;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100dvh;
+  }
+
+  body {
+    @apply bg-lienzo font-sans text-tinta-800 antialiased;
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Anillo de foco visible y consistente para teclado, en todo el sistema */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    @apply outline-2 outline-offset-2 outline-marca-500;
+  }
+}
+
+@layer components {
+  .btn-primario {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-marca-800 px-4 py-2.5 text-sm font-medium text-white
+      transition duration-200 ease-salida hover:bg-marca-900 active:scale-[0.98]
+      disabled:cursor-not-allowed disabled:bg-tinta-300 disabled:active:scale-100;
+  }
+
+  .btn-secundario {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-tinta-300 bg-white px-4 py-2.5 text-sm font-medium text-tinta-700
+      transition duration-200 ease-salida hover:border-tinta-400 hover:bg-tinta-50 active:scale-[0.98]
+      disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
+  }
+
+  .campo {
+    @apply w-full rounded-lg border border-tinta-400 bg-white px-3.5 py-2.5 text-sm text-tinta-900
+      transition duration-200 placeholder:text-tinta-400
+      hover:border-tinta-500 focus:border-marca-500 focus:ring-4 focus:ring-marca-500/10 focus:outline-none;
+  }
+
+  .campo-error {
+    @apply border-riesgo-alto/60 focus:border-riesgo-alto focus:ring-riesgo-alto/10;
+  }
+
+  .etiqueta {
+    @apply mb-1.5 block text-sm font-medium text-tinta-700;
+  }
+}
+
+@layer components {
+  /* Etiqueta tipo píldora (minimalist-ui): pastel desaturado, texto pequeño y espaciado */
+  .pildora {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-[0.05em] uppercase;
+  }
+}
+
+/*
+ * Entrada escalonada (minimalist-ui / design-taste-frontend-v1): las filas de
+ * una lista aparecen en cascada, nunca todas de golpe. Cada una lleva
+ * style="--i: n". Solo transform + opacity.
+ */
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.entrada {
+  animation: entrada 600ms var(--ease-salida) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entrada {
+    animation: none;
+  }
+}
