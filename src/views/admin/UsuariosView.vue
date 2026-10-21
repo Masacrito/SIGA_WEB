@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { PhMagnifyingGlass, PhPlus, PhTrash, PhUsersFour } from '@phosphor-icons/vue'
+import { RouterLink } from 'vue-router'
+import { PhClock, PhMagnifyingGlass, PhPlus, PhTrash, PhUsersFour } from '@phosphor-icons/vue'
 import {
   asignarGrupo,
   catalogo,
@@ -328,6 +329,15 @@ async function retirarGrupo(g: Grupo) {
                     <PhUsersFour :size="16" weight="bold" />
                     Grupos
                   </button>
+                  <RouterLink
+                    v-if="u.rol === 'docente' && u.activo && auth.puede('gestionar_catalogos')"
+                    :to="{ name: 'horarios', query: { usuario: u.id } }"
+                    class="btn-secundario px-3 py-1.5"
+                    :aria-label="`Horario de ${u.nombre}`"
+                  >
+                    <PhClock :size="16" weight="bold" />
+                    Horario
+                  </RouterLink>
                   <button
                     type="button"
                     class="btn-secundario ml-2 px-3 py-1.5"

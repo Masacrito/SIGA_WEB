@@ -1155,14 +1155,14 @@ export interface paths {
     }
     /**
      * Buscar/listar alumnos (la vía principal de alta es POST /importaciones, CU-14; esto es para consulta)
-     * @description Buscador; devuelve máximo 50, ordenados por nombre (apellidos primero). matricula busca por prefijo, nombre por contenido. Pertenencia: solo alumnos inscritos en el periodo activo en grupos que el usuario ve (con ver_todos_los_grupos, cualquiera).
+     * @description Buscador; devuelve máximo 50 (100 con grupo_id), ordenados por nombre (apellidos primero). matricula busca por prefijo, nombre por contenido. Pertenencia: solo alumnos inscritos en el periodo activo en grupos que el usuario ve (con ver_todos_los_grupos, cualquiera).
      */
     get: {
       parameters: {
         query?: {
           matricula?: string
           nombre?: string
-          /** @description Filtra por inscripción vigente */
+          /** @description Filtra por inscripción vigente (la lista del grupo, hasta 100) */
           grupo_id?: number
         }
         header?: never
@@ -1185,7 +1185,37 @@ export interface paths {
       }
     }
     put?: never
-    post?: never
+    /**
+     * Alta manual de un alumno con su inscripción en un grupo del periodo activo
+     * @description La inscripción es lo que pone al alumno en la lista del grupo (y en la app de sus docentes). El nombre se guarda con apellidos primero y sin espacios repetidos. 422 si la matrícula ya existe o el grupo no es del periodo activo.
+     */
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['AlumnoInput']
+        }
+      }
+      responses: {
+        /** @description Alumno creado e inscrito */
+        201: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['AlumnoAdmin']
+          }
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+        422: components['responses']['ErrorValidacion']
+      }
+    }
     delete?: never
     options?: never
     head?: never
@@ -1228,7 +1258,40 @@ export interface paths {
         404: components['responses']['NoEncontrado']
       }
     }
-    put?: never
+    /**
+     * Editar alumno, darlo de baja (activo=false) o cambiarlo de grupo
+     * @description Sin grupo_id la inscripción no cambia. Con grupo_id se mueve la inscripción del periodo activo (o se crea si no tenía); la asistencia del grupo anterior se conserva y sigue contando para el semáforo.
+     */
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          alumno_id: components['parameters']['AlumnoId']
+        }
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['AlumnoInput']
+        }
+      }
+      responses: {
+        /** @description Alumno actualizado */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['AlumnoAdmin']
+          }
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+        404: components['responses']['NoEncontrado']
+        422: components['responses']['ErrorValidacion']
+      }
+    }
     post?: never
     delete?: never
     options?: never
@@ -1674,6 +1737,200 @@ export interface paths {
       }
     }
     delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/catalogos/docentes': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Docentes que se pueden asignar a un horario (cuenta activa y rol docente) */
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Lista ordenada por nombre */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['DocenteCatalogo'][]
+          }
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/horarios': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Horario de un grupo o de un docente
+     * @description Se pide grupo_id o docente_id (422 sin ninguno). Por docente, solo grupos del periodo activo. Ordenado por día y hora.
+     */
+    get: {
+      parameters: {
+        query?: {
+          grupo_id?: number
+          /** @description docentes.id (no usuarios.id) */
+          docente_id?: number
+        }
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Clases de la semana */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['HorarioAdmin'][]
+          }
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+        422: components['responses']['ErrorValidacion']
+      }
+    }
+    put?: never
+    /**
+     * Asignar una clase (grupo + materia + docente + día + hora)
+     * @description Es lo que liga al docente con el grupo: con esto el grupo aparece en /mis-horarios y el docente puede ver su lista. El grupo debe ser del periodo activo (422). 409 si el grupo o el docente ya tienen otra clase que se encime ese día; una clase que empieza justo cuando termina otra no choca.
+     */
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['HorarioInput']
+        }
+      }
+      responses: {
+        /** @description Clase creada */
+        201: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['HorarioAdmin']
+          }
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+        409: components['responses']['Conflicto']
+        422: components['responses']['ErrorValidacion']
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/horarios/{horario_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        horario_id: number
+      }
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Editar una clase
+     * @description Mismas reglas que el alta. Si ya tiene listas capturadas (listas_capturadas > 0) solo cambian docente y horas; cambiar grupo, materia o día responde 409.
+     */
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          horario_id: number
+        }
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['HorarioInput']
+        }
+      }
+      responses: {
+        /** @description Clase actualizada */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['HorarioAdmin']
+          }
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+        404: components['responses']['NoEncontrado']
+        409: components['responses']['Conflicto']
+        422: components['responses']['ErrorValidacion']
+      }
+    }
+    post?: never
+    /**
+     * Eliminar una clase sin listas capturadas
+     * @description 409 si ya tiene listas (se perdería su asistencia).
+     */
+    delete: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          horario_id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Eliminada */
+        204: {
+          headers: {
+            [name: string]: unknown
+          }
+          content?: never
+        }
+        401: components['responses']['NoAutenticado']
+        403: components['responses']['SinPermiso']
+        404: components['responses']['NoEncontrado']
+        409: components['responses']['Conflicto']
+      }
+    }
     options?: never
     head?: never
     patch?: never
@@ -2547,6 +2804,59 @@ export interface components {
        * @enum {string}
        */
       situacion_academica?: 'regular' | 'irregular' | 'recursador' | 'extemporaneo'
+    }
+    AlumnoInput: {
+      matricula: string
+      /** @description Apellidos primero, como en lista */
+      nombre: string
+      /** @description Obligatorio al crear; al editar, sin él no cambia la inscripción */
+      grupo_id?: number
+      /**
+       * @description Default regular
+       * @enum {string}
+       */
+      situacion_academica?: 'regular' | 'irregular' | 'recursador' | 'extemporaneo'
+      /** @description false = baja */
+      activo?: boolean
+    }
+    AlumnoAdmin: components['schemas']['Alumno'] & {
+      /** @description Grupo del periodo activo; null si no está inscrito */
+      grupo?: components['schemas']['Grupo'] | null
+    }
+    DocenteCatalogo: {
+      /** @description docentes.id (el que va en HorarioInput) */
+      id?: number
+      usuario_id?: number
+      nombre?: string
+      username?: string
+      numero_empleado?: string | null
+    }
+    HorarioAdmin: components['schemas']['Horario'] & {
+      docente?: {
+        id?: number
+        usuario_id?: number
+        nombre?: string
+      }
+      /** @description Sesiones de clase ya creadas; > 0 bloquea cambiar grupo/materia/día y borrar */
+      listas_capturadas?: number
+    }
+    HorarioInput: {
+      grupo_id: number
+      materia_id: number
+      /** @description docentes.id */
+      docente_id: number
+      /** @description 1=lunes ... 6=sábado */
+      dia_semana: number
+      /**
+       * @description HH:MM
+       * @example 07:00
+       */
+      hora_inicio: string
+      /**
+       * @description HH:MM, después de hora_inicio
+       * @example 07:50
+       */
+      hora_fin: string
     }
     SesionClase: {
       id?: number

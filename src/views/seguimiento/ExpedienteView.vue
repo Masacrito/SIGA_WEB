@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { PhArrowLeft, PhEnvelopeSimple, PhPhone, PhStar } from '@phosphor-icons/vue'
+import { PhArrowLeft, PhEnvelopeSimple, PhPencilSimple, PhPhone, PhStar } from '@phosphor-icons/vue'
 import { expediente, historial, type Expediente, type RegistroHistorial } from '@/api/seguimiento'
 import { mensajeDeError } from '@/api/http'
 import { ESTADOS, etiquetaGrupo, fechaCorta } from '@/composables/riesgo'
 import NivelRiesgo from '@/components/NivelRiesgo.vue'
+import FormularioAlumno from '@/components/FormularioAlumno.vue'
+import { useAuthStore } from '@/stores/auth'
 
 /** Expediente: datos, riesgo del periodo, tutores y su historial (por materia y por día). */
 const route = useRoute()
+const administra = useAuthStore().puede('gestionar_catalogos')
+const editarAbierto = ref(false)
 const alumno = ref<Expediente | null>(null)
 const registros = ref<RegistroHistorial[]>([])
 const cargando = ref(true)
@@ -98,8 +102,25 @@ const cambioDeGrupo = computed(() => new Set(registros.value.map((r) => r.grupo.
             >
           </p>
         </div>
-        <span v-if="!alumno.activo" class="pildora bg-tinta-100 text-tinta-600">Baja</span>
+        <div class="flex items-center gap-3">
+          <span v-if="!alumno.activo" class="pildora bg-tinta-100 text-tinta-600">Baja</span>
+          <button
+            v-if="administra"
+            type="button"
+            class="btn-secundario px-3 py-1.5"
+            @click="editarAbierto = true"
+          >
+            <PhPencilSimple :size="16" weight="bold" />
+            Editar
+          </button>
+        </div>
       </header>
+      <FormularioAlumno
+        v-if="administra"
+        v-model:abierto="editarAbierto"
+        :alumno="alumno"
+        @guardado="cargar"
+      />
 
       <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <!-- Riesgo -->

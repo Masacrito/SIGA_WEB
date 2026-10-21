@@ -71,3 +71,29 @@ export const guardarUmbrales = (umbrales: Partial<UmbralRiesgo>[]) =>
 export const listarConfiguraciones = () => datos(http.get<Configuracion[]>('/configuraciones'))
 export const guardarConfiguracion = (clave: string, valor: string) =>
   datos(http.put<Configuracion>('/configuraciones', { clave, valor }))
+
+// Carga manual (v1.6.0): alumnos con su inscripción y horarios (lo que liga docente ↔ grupo)
+export type AlumnoInput = Esquemas['AlumnoInput']
+export type AlumnoAdmin = Required<Esquemas['Alumno']> & { grupo: Grupo | null }
+export type DocenteCatalogo = Required<Esquemas['DocenteCatalogo']>
+export type HorarioInput = Esquemas['HorarioInput']
+export type HorarioAdmin = Required<Esquemas['Horario']> & {
+  grupo: Grupo
+  materia: Pick<Materia, 'id' | 'clave' | 'nombre'>
+  docente: { id: number; usuario_id: number; nombre: string }
+  listas_capturadas: number
+}
+
+export const listaDeGrupo = (grupoId: number) =>
+  datos(http.get<Alumno[]>('/alumnos', { params: { grupo_id: grupoId } }))
+export const crearAlumno = (a: AlumnoInput) => datos(http.post<AlumnoAdmin>('/alumnos', a))
+export const editarAlumno = (id: number, a: AlumnoInput) =>
+  datos(http.put<AlumnoAdmin>(`/alumnos/${id}`, a))
+
+export const listarDocentes = () => datos(http.get<DocenteCatalogo[]>('/catalogos/docentes'))
+export const listarHorarios = (filtro: { grupo_id: number } | { docente_id: number }) =>
+  datos(http.get<HorarioAdmin[]>('/horarios', { params: filtro }))
+export const crearHorario = (h: HorarioInput) => datos(http.post<HorarioAdmin>('/horarios', h))
+export const editarHorario = (id: number, h: HorarioInput) =>
+  datos(http.put<HorarioAdmin>(`/horarios/${id}`, h))
+export const eliminarHorario = (id: number) => http.delete(`/horarios/${id}`)
