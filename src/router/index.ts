@@ -116,14 +116,13 @@ const router = createRouter({
         {
           path: 'observaciones',
           name: 'observaciones',
-          component: Pendiente,
+          component: () => import('@/views/seguimiento/ObservacionesView.vue'),
           meta: {
             titulo: 'Observaciones',
             icono: markRaw(PhChatCircleText),
             descripcion: 'Bitácora de seguimiento tutorial',
             seccion: 'Seguimiento',
             permiso: 'registrar_observacion',
-            bloque: 6,
           },
         },
         {
@@ -142,14 +141,13 @@ const router = createRouter({
         {
           path: 'reportes',
           name: 'reportes',
-          component: Pendiente,
+          component: () => import('@/views/seguimiento/ReportesView.vue'),
           meta: {
             titulo: 'Reportes',
             icono: markRaw(PhFileText),
             descripcion: 'Reportes de asistencia por grupo y periodo',
             seccion: 'Seguimiento',
             permiso: 'generar_reportes',
-            bloque: 6,
           },
         },
 

@@ -612,11 +612,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Generar reporte de asistencias/calificaciones filtrado (CU-07) */
+    /**
+     * Generar reporte de asistencias/calificaciones filtrado (CU-07)
+     * @description Reporte de un grupo en su periodo: una fila por alumno activo (las bajas no aparecen), en orden de lista, con matrícula, situación, clases, faltas, retardos, justificadas, % de inasistencia y nivel (mismo cálculo del semáforo) y promedio de las calificaciones numéricas del periodo. El nombre del archivo viene en Content-Disposition (SIGA_asistencia_<grupo>_<turno>_<periodo>.pdf|xlsx).
+     */
     get: {
       parameters: {
-        query?: {
-          grupo_id?: number
+        query: {
+          grupo_id: number
+          /** @description Opcional; si viene, debe ser el periodo del grupo (422) */
           periodo_id?: number
           formato?: 'pdf' | 'excel'
         }
@@ -638,6 +642,7 @@ export interface paths {
         }
         401: components['responses']['NoAutenticado']
         403: components['responses']['SinPermiso']
+        422: components['responses']['ErrorValidacion']
       }
     }
     put?: never
@@ -655,7 +660,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Listar observaciones registradas */
+    /**
+     * Listar observaciones registradas
+     * @description Con alumno_id, toda la bitácora del alumno (403 si no es de sus grupos). Sin él, las 100 más recientes de los grupos que ve el usuario. De la más reciente a la más antigua.
+     */
     get: {
       parameters: {
         query?: {
@@ -681,7 +689,10 @@ export interface paths {
       }
     }
     put?: never
-    /** Registrar una observación de seguimiento tutorial (CU-08) */
+    /**
+     * Registrar una observación de seguimiento tutorial (CU-08)
+     * @description La fecha es la de hoy y el autor el usuario autenticado. 403 si el alumno no es de sus grupos.
+     */
     post: {
       parameters: {
         query?: never
@@ -795,7 +806,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Consultar calificaciones de un alumno (CU-15, también usado por Docente) */
+    /**
+     * Consultar calificaciones de un alumno (CU-15, también usado por Docente)
+     * @description Por defecto del periodo activo; ordenadas por materia y parcial. 403 si el alumno no es de sus grupos.
+     */
     get: {
       parameters: {
         query?: {
@@ -854,17 +868,20 @@ export interface paths {
         content: {
           'application/json': {
             motivo: string
-            evidencia_url?: string
+            /** Format: uri */
+            evidencia_url?: string | null
           }
         }
       }
       responses: {
-        /** @description Justificación registrada y la asistencia asociada se actualiza a estado 'justificado' */
+        /** @description Justificación registrada y la asistencia asociada se actualiza a estado 'justificado' (sigue contando como clase, ya no como falta). Solo faltas o retardos (422 si es 'presente'); 409 si ya tiene justificante; 403 si el grupo no es del usuario. */
         201: {
           headers: {
             [name: string]: unknown
           }
-          content?: never
+          content: {
+            'application/json': components['schemas']['Justificacion']
+          }
         }
         401: components['responses']['NoAutenticado']
         403: components['responses']['SinPermiso']
@@ -2112,7 +2129,7 @@ export interface paths {
         content: {
           'application/json': {
             /**
-             * @description Se valida contra configuraciones.escala_calificacion (10 o 100) si la materia es numérica, o contra A/NA si es alfanumérica
+             * @description Se valida contra configuraciones.escala_calificacion (0 a 10 o 0 a 100, un decimal como máximo; se guarda normalizado: "08.0" → "8") si la materia es numérica, o contra A/NA si es alfanumérica (sin importar mayúsculas)
              * @example 8
              */
             calificacion: string
@@ -2980,6 +2997,30 @@ export interface components {
       /** Format: date */
       fecha?: string
       texto?: string
+      alumno?: {
+        id?: number
+        matricula?: string
+        nombre?: string
+      }
+      /** @description Quién la escribió (puede ser un administrador) */
+      orientador?: {
+        id?: number
+        nombre?: string
+      }
+    }
+    Justificacion: {
+      id?: number
+      asistencia_id?: number
+      motivo?: string
+      evidencia_url?: string | null
+      autorizada_por?: number
+      /** Format: date-time */
+      fecha_autorizacion?: string
+      /**
+       * @description Nuevo estado de la asistencia
+       * @enum {string}
+       */
+      estado?: 'justificado'
     }
     Notificacion: {
       id?: number
@@ -3012,6 +3053,20 @@ export interface components {
       tipo?: 'regular' | 'cursadora'
       /** @enum {string} */
       origen?: 'importado' | 'manual'
+      materia?: {
+        id?: number
+        clave?: string
+        nombre?: string
+        /** @enum {string} */
+        tipo_evaluacion?: 'numerica' | 'alfanumerica'
+      }
+      /** @description Quién la corrigió a mano (null si viene de importación) */
+      editado_por?: {
+        id?: number
+        nombre?: string
+      } | null
+      /** Format: date-time */
+      actualizada_en?: string | null
     }
     Rol: {
       id?: number

@@ -7,11 +7,21 @@ import { mensajeDeError } from '@/api/http'
 import { ESTADOS, etiquetaGrupo, fechaCorta } from '@/composables/riesgo'
 import NivelRiesgo from '@/components/NivelRiesgo.vue'
 import FormularioAlumno from '@/components/FormularioAlumno.vue'
+import VentanaJustificar from '@/components/VentanaJustificar.vue'
+import CalificacionesAlumno from '@/components/CalificacionesAlumno.vue'
+import BitacoraAlumno from '@/components/BitacoraAlumno.vue'
 import { useAuthStore } from '@/stores/auth'
 
-/** Expediente: datos, riesgo del periodo, tutores y su historial (por materia y por día). */
+/**
+ * Expediente: datos, riesgo del periodo, tutores, historial (por materia y por día),
+ * calificaciones y bitácora. Cada sección aparece solo con su permiso.
+ */
 const route = useRoute()
-const administra = useAuthStore().puede('gestionar_catalogos')
+const auth = useAuthStore()
+const administra = auth.puede('gestionar_catalogos')
+const puedeJustificar = auth.puede('autorizar_justificacion')
+const verCalificaciones = auth.puede('consultar_calificaciones')
+const verBitacora = auth.puede('registrar_observacion')
 const editarAbierto = ref(false)
 const alumno = ref<Expediente | null>(null)
 const registros = ref<RegistroHistorial[]>([])
@@ -20,7 +30,8 @@ const errorCarga = ref('')
 
 async function cargar() {
   const id = Number(route.params.id)
-  cargando.value = true
+  // Al recargar el mismo alumno (tras justificar o editar) no se desmonta la pantalla: no brinca el scroll
+  cargando.value = alumno.value?.id !== id
   errorCarga.value = ''
   try {
     ;[alumno.value, registros.value] = await Promise.all([
@@ -71,6 +82,20 @@ const porDia = computed(() => {
 // Volver a donde venía (semáforo, búsqueda de alumnos o historial)
 const anterior = window.history.state?.back as string | undefined
 const atras = anterior && anterior !== '/login' ? anterior : '/semaforo'
+
+// Justificar: las faltas y retardos de un día
+const justificarAbierto = ref(false)
+const diaAJustificar = ref<{ fecha: string; clases: RegistroHistorial[] }>({
+  fecha: '',
+  clases: [],
+})
+const porJustificar = (clases: RegistroHistorial[]) =>
+  clases.filter((c) => c.estado === 'ausente' || c.estado === 'retardo')
+function abrirJustificar(fecha: string, clases: RegistroHistorial[]) {
+  diaAJustificar.value = { fecha, clases: porJustificar(clases) }
+  justificarAbierto.value = true
+}
+
 const cambioDeGrupo = computed(() => new Set(registros.value.map((r) => r.grupo.id)).size > 1)
 </script>
 
@@ -255,6 +280,9 @@ const cambioDeGrupo = computed(() => new Set(registros.value.map((r) => r.grupo.
         </div>
       </section>
 
+      <CalificacionesAlumno v-if="verCalificaciones" :alumno-id="alumno.id" />
+      <BitacoraAlumno v-if="verBitacora" :alumno-id="alumno.id" />
+
       <!-- Por día -->
       <section aria-labelledby="titulo-dias" class="mt-8">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -298,6 +326,15 @@ const cambioDeGrupo = computed(() => new Set(registros.value.map((r) => r.grupo.
             >
               {{ d.clases.find((c) => c.motivo_justificacion)?.motivo_justificacion }}
             </span>
+            <button
+              v-if="puedeJustificar && porJustificar(d.clases).length"
+              type="button"
+              class="ml-auto rounded-md px-2 py-1 text-xs font-medium text-marca-700 hover:bg-marca-50"
+              :aria-label="`Justificar el ${fechaCorta(d.fecha)}`"
+              @click="abrirJustificar(d.fecha, d.clases)"
+            >
+              Justificar
+            </button>
           </li>
         </ul>
         <p class="mt-3 text-xs text-tinta-500">
@@ -305,6 +342,13 @@ const cambioDeGrupo = computed(() => new Set(registros.value.map((r) => r.grupo.
           la materia.
         </p>
       </section>
+      <VentanaJustificar
+        v-if="puedeJustificar"
+        v-model:abierto="justificarAbierto"
+        :fecha="diaAJustificar.fecha"
+        :clases="diaAJustificar.clases"
+        @guardado="cargar"
+      />
     </template>
   </div>
 </template>
